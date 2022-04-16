@@ -1,4 +1,6 @@
+import json
 import random, time, datetime, math, os
+from turtle import pos
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 def incircle(center, point, radius):
@@ -60,6 +62,8 @@ class Seat():
         self.now = str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
         #是否设置信息输出
         self.ifInfoOutput = False
+        #禁止出现人的位置
+        self.forbidden = list()
 
         self.timedict=dict()
     
@@ -87,7 +91,7 @@ class Seat():
                         if i[0] != "#":
                             self.judgment.append(i)
             except FileNotFoundError:
-                self.infoList.addItem("载入judgment失败！")
+                self.infoList.addItem("#Processing 载入judgment失败！")
         else:
             self.judgment = None
 
@@ -98,47 +102,61 @@ class Seat():
                         if j[0] != "#":
                             self.generation.append(j)
             except FileNotFoundError:
-                self.infoList.addItem("载入generation失败！")
+                self.infoList.addItem("#Processing 载入Generation失败！")
         else:
             self.generation = None
-            self.infoList.addItem("无generation输入")
+            self.infoList.addItem("#Processing 无Generation输入")
         
     def init_generation(self,seat,deleted):
         #Generation条件初始化
         if bool(self.generation):
-            self.infoList.addItem("载入generation中")
+            self.infoList.addItem("#Processing 载入Generation中")
             for g in self.generation:
                 l=g.replace("\n","").split(" ")
-                try:
+                if True: #try:
                     if l[0] == "g1":
                         self.infoList.addItem("在{}位置生成{}".format(l[2],l[1]))
+                        if l[2] == " ":   #禁止出现的位置
+                            self.forbidden.append(l[2])
                         self.generating(l[1],eval(l[2]),deleted=deleted)
                     elif l[0]=="g2":
                         if len(l) == 4:
                             self.infoList.addItem("在圆心为{},半径为{}的圆内生成{}".format(l[3],l[2],l[1]))
-                            self.generate_by_radius( l[1].split(","), float(l[2]), deleted,eval(l[3]))
+                            position = json.loads(l[3].replace("(","[").replace(")","]"))
+                            self.generate_by_radius( l[1].split(","), float(l[2]), deleted, position)
                         else:
                             self.infoList.addItem("在圆心随机,半径为{}的圆内生成{}".format(l[2],l[1]))
-                            self.generate_by_radius( l[2].split(","), float(l[3]), deleted,l[4],l[1])
+                            self.generate_by_radius( l[1].split(","), float(l[2]), deleted)
                     elif l[0]=="g3":
                         self.infoList.addItem("在圆心为{},半径为{}的圆内,以{}为中心生成{}".format(l[4],l[3],l[1],l[2]))
-                        self.generate_by_radius( l[2].split(","), float(l[3]), deleted , l[4] , l[1])
+                        position = json.loads(l[4].replace("(","[").replace(")","]"))  #把字符(1,2)转为list
+                        self.generate_by_radius( l[2].split(","), float(l[3]), deleted , position , l[1])
                     else:
                         self.infoList.addItem("输入错误:{}".format(g))
-                except IndexError:
+                else: #except IndexError as e:
                     #输入错误导致项溢出
-                    self.infoList.addItem("输入错误,项溢出!")
+                    self.infoList.addItem("输入错误,项溢出:" + str(e.args))
 
-    def generating(self,stuName,position,deleted = None):
+    def generating(self,stuName,position,deleted = None, enforce = False):
         # Generation , 在一个固定位置生成
         # seat : list = 生成座位
         # stuName : str = 生成的学生名
         # position : tuple = 位置
-        self.seat[position[1]][position[0]] = stuName
-        if bool(deleted):
-            deleted += [stuName]
+        if enforce and self.seat[position[1]][position[0]] != "":
+            
+            self.infoList.addItem("#Generating 强制生成{}在{},原位置为：{}".format(stuName, position, self.seat[position[1]][position[0]]))
+            self.seat[position[1]][position[0]] = stuName
+            if bool(deleted):
+                deleted += [stuName]
+        elif self.seat[position[1]][position[0]] == "":
+            self.infoList.addItem("#Generating 生成{}在{}".format(stuName, position))
+            self.seat[position[1]][position[0]] = stuName
+            if bool(deleted):
+                deleted += [stuName]
+            self.infoList.addItem("#Generating 未生成{}在{}：原位置已有{}".format(stuName, position, self.seat[position[1]][position[0]]))
+        
     
-    def generate_by_radius(self,Student_list:list,radius,deleted,centerPosition=(-1,-1),MainStudent = None):
+    def generate_by_radius(self,Student_list:list,radius,deleted,centerPosition=(-1,-1), MainStudent = None):
         # Generation , 以一个圆生成 
         # Student_list: 学生列表
         # radius: 圆半径
@@ -156,13 +174,11 @@ class Seat():
             centerPosition = (random.randint(0, size[0] - 1), random.randint(0, size[1] - 1))
 
         else:
-            # BUG： centerPosition 为 str
-            print(type(centerPosition))
-            x = int(centerPosition[0])
-            y = int(centerPosition[1])
+            # BugFixed： centerPosition 为 str
+            x,y = centerPosition
             #判断坐标是否合法
             if not (x >= 0 and x <= size[0] - 1 and y >= 0 and y <= size[1] - 1):
-                self.infoList.addItem("generation g2 坐标错误")
+                self.infoList.addItem("#GenerationG2 坐标错误")
 
         if bool(MainStudent):
             self.generating(centerStudent, centerPosition,self.deleted)
@@ -173,7 +189,7 @@ class Seat():
         random.shuffle(point_list)
         points = point_list.copy()
         if len(points) < len(Student_list):
-            self.infoList.addItem("generation g2 生成半径过小")
+            self.infoList.addItem("#GenerationG2 生成半径过小")
         for p in point_list:
             x, y = p
             if not (x >= 0 and x <= size[0] - 1 and y >= 0 and y <= size[1] - 1):
@@ -185,8 +201,17 @@ class Seat():
             pos = points[stu]
             if self.seat[pos[1]][pos[0]] == "":
                 self.generating(Student_list[stu], points[stu], self.deleted)
+                point_list.remove(pos)
             else:
-                return None
+                point_list.remove(pos)
+                pos = points[0]
+                while self.seat[pos[1]][pos[0]] != "":
+                    points.remove(pos)
+                    pos = points[0]
+                    if len(points) == 0:
+                        self.infoList.addItem("#GenerationG2 生成半径过小")
+                        return None
+
 
 
     def draw(self,size,seat,savePath):
@@ -216,7 +241,8 @@ class Seat():
         return "已保存图片: {}".format(save_dir)
 
     def generate(self):
-        #尝试生成
+        #尝试生成 成功返回1 否则返回0
+
         stu_copy = self.stu_list.copy()
         random.shuffle(stu_copy)
         self.initialization()
@@ -245,21 +271,28 @@ class Seat():
         count = 0
         for i in self.seat:
             for j in i:
-                if i in self.stu_list:
+                if j in self.stu_list:
                     count+=1
         # TODO: 解释judgment
         if count == len(self.stu_list):
-            # 若generation发生重叠导致人数不足
+            # BUG : 失效
+            for i in self.forbidden:
+                if self.seat[i[1]][i[0]]  != " ":
+                    print(1)
+                    return 0
             self.completed.append(self.seat)
-            return 0
-        else:
             return 1
+        else:
+            return 0
 
     def generate_loop(self,loop_times):
         # 多次生成
-        for x in range(loop_times):
-            self.infoList.addItem("正在生成第{}张座位".format(x))
+        x=loop_times
+        while x>0:
+            self.infoList.addItem("#Processing 正在生成第{}张座位".format(x))
             x-= self.generate()
+
+        
 
     def save(self,size,path):
     # 保存：生成图片、csv、json文件,保存路径

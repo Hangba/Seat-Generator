@@ -2,5 +2,5 @@
 #g2 StudentList radius (circleCenterPosition) 在一个圆内生成学生列表中的人,StudentList用英文逗号分隔
 #g3 MainStudent StudentList radius circleCenterPosition 给定圆心和中心学生在一个圆内生成学生列表中的人,StudentList用英文逗号分隔
 g3 刘议嵘 钟锦锐,李灏文 1 (1,3)
-g2 莫翔麟,农舜 1
+g2 莫翔麟,农舜 1.2
 g1 卢明睿 (1,2)

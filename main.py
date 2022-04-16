@@ -34,7 +34,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         self.JsonPath.setText(filePath)
 
     def read_Names_path(self):
-        filePath,fileType = QFileDialog.getOpenFileName(self, "选择名单文件", os.getcwd(), "All Files(*.*);;Text Files(*.json)")
+        filePath,fileType = QFileDialog.getOpenFileName(self, "选择名单文件", os.getcwd(), "All Files(*.*);;Json Files(*.json)")
         self.Names.setText(filePath)
     
     def read_save_path(self):
@@ -43,10 +43,10 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
 
     def load_seat(self):
 
-        self.GeneratorPath.setText("F:/编程/分座位器/UI.Ver/NewGeneration.txt")
-        self.Names.setText("F:/编程/分座位器/UI.Ver/2118name.json")
-        self.SavePath.setText("F:/编程/分座位器/Test")
-        self.SampleNumber.setText("8")
+        self.GeneratorPath.setText("F:\\编程\\SeatGenerator\\SeatGenerator\\NewGeneration.txt")
+        self.Names.setText("F:\\编程\\分座位器\\UI.Ver\\2118name.json")
+        self.SavePath.setText("F:\\编程\\分座位器\\Test")
+        self.SampleNumber.setText("100")
         self.splNumber.setText("8")
 
         #载入名单
@@ -72,14 +72,15 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         if isLoadingSuccessful:
             #载入条件
             self.seats.init_factor(self.JudgmentPath.text(),self.GeneratorPath.text())
-            if True: #try:
+            try:
                 if int(self.SampleNumber.text())<=0:
                     raise ValueError
                 self.seats.generate_loop(int(self.SampleNumber.text()))
+                self.seats.save(self.getsize(),self.SavePath.text())
                 
-            else: #except ValueError as e:
+            except ValueError as e:
                 self.InfoList.addItem("生成失败,样本数输入错误 : "+str(e))
-            #self.seats.save(self.getsize(),self.SavePath.text())
+            
             
             """
             self.seats.completed.append( eval(open("F:\\编程\\分座位器\\2022-04-05-13-47-24\\@0.json","r",encoding="UTF8").read()) )
