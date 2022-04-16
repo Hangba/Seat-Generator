@@ -1,5 +1,16 @@
 from PyQt5.QtWidgets import QApplication,QWidget,QFileDialog
 import ui,sys,os,functions,json
+from threading import Thread
+
+class CustomThread(Thread):
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self, function, args):
+        self.thread1 = Thread(target= function,args = args, daemon=True)
+        self.thread1.start()
+
 
 class mainwindow(QWidget,ui.Ui_MainWindow):
     def __init__(self):
@@ -49,6 +60,8 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         self.SampleNumber.setText("100")
         self.splNumber.setText("8")
 
+        #多线程准备
+        self.thread = CustomThread()
         #载入名单
         isLoadingSuccessful = False #是否载入成功
         try:
@@ -76,19 +89,16 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
                 if int(self.SampleNumber.text())<=0:
                     raise ValueError
                 self.seats.generate_loop(int(self.SampleNumber.text()))
-                self.seats.save(self.getsize(),self.SavePath.text())
+            
+            #用多线程画图
+                # global 
+                size = self.getsize()
+                path = self.SavePath.text()
+                self.thread.run(self.seats.save,args = (size,path))
                 
             except ValueError as e:
                 self.InfoList.addItem("生成失败,样本数输入错误 : "+str(e))
             
-            
-            """
-            self.seats.completed.append( eval(open("F:\\编程\\分座位器\\2022-04-05-13-47-24\\@0.json","r",encoding="UTF8").read()) )
-            self.seats.completed.append( eval(open("F:\\编程\\分座位器\\2022-04-05-13-47-24\\@1.json","r",encoding="UTF8").read()) )
-            self.seats.completed.append( eval(open("F:\\编程\\分座位器\\2022-04-05-13-47-24\\@2.json","r",encoding="UTF8").read()) )
-            self.seats.initialization()
-            
-            """
 
 app=QApplication(sys.argv)
 w=mainwindow()

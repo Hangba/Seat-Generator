@@ -1,7 +1,9 @@
 import json
 import random, time, datetime, math, os
+from threading import Thread
 from turtle import pos
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from threading import Thread
 
 def incircle(center, point, radius):
     # 判断一个点是否在圆中, 返回bool
@@ -41,6 +43,7 @@ def integerpoint_in_circle(center, radius):
 def log(output,msg):
     #在窗口列表中记录信息
     output.addItem(msg)
+
 
 class Seat():
     def __init__(self,stu_list,spl):
@@ -113,12 +116,14 @@ class Seat():
             self.infoList.addItem("#Processing 载入Generation中")
             for g in self.generation:
                 l=g.replace("\n","").split(" ")
-                if True: #try:
+                try:
                     if l[0] == "g1":
                         self.infoList.addItem("在{}位置生成{}".format(l[2],l[1]))
-                        if l[2] == " ":   #禁止出现的位置
-                            self.forbidden.append(l[2])
-                        self.generating(l[1],eval(l[2]),deleted=deleted)
+                        if l[1] == "None":   #禁止出现的位置
+                            self.forbidden.append(eval(l[2]))
+                            self.generating(" ",eval(l[2]),deleted=deleted)
+                        else:
+                            self.generating(l[1],eval(l[2]),deleted=deleted)
                     elif l[0]=="g2":
                         if len(l) == 4:
                             self.infoList.addItem("在圆心为{},半径为{}的圆内生成{}".format(l[3],l[2],l[1]))
@@ -132,10 +137,10 @@ class Seat():
                         position = json.loads(l[4].replace("(","[").replace(")","]"))  #把字符(1,2)转为list
                         self.generate_by_radius( l[2].split(","), float(l[3]), deleted , position , l[1])
                     else:
-                        self.infoList.addItem("输入错误:{}".format(g))
-                else: #except IndexError as e:
+                        self.infoList.addItem("#Generation 操作符输入错误:{}".format(g))
+                except IndexError as e:
                     #输入错误导致项溢出
-                    self.infoList.addItem("输入错误,项溢出:" + str(e.args))
+                    self.infoList.addItem("#Generation 输入错误,项溢出:" + str(e.args))
 
     def generating(self,stuName,position,deleted = None, enforce = False):
         # Generation , 在一个固定位置生成
@@ -275,10 +280,9 @@ class Seat():
                     count+=1
         # TODO: 解释judgment
         if count == len(self.stu_list):
-            # BUG : 失效
             for i in self.forbidden:
+                
                 if self.seat[i[1]][i[0]]  != " ":
-                    print(1)
                     return 0
             self.completed.append(self.seat)
             return 1
@@ -289,9 +293,12 @@ class Seat():
         # 多次生成
         x=loop_times
         while x>0:
-            self.infoList.addItem("#Processing 正在生成第{}张座位".format(x))
+            self.infoList.addItem("#Processing 正在生成第{}张座位".format(loop_times - x))
             x-= self.generate()
 
+    def upgrade_saving_info(self,times):
+        self.progressbar.setValue(times)
+        self.progressnumber.display(times)
         
 
     def save(self,size,path):
@@ -316,9 +323,9 @@ class Seat():
             open("{}//{}".format(path,str(self.completed.index(c)) + ".json"),"w", encoding="UTF8").write(str(c))
             times+=1
             if self.ifInfoOutput:
-                self.progressbar.setValue(times)
-                self.progressnumber.display(times)
+                self.upgrade_saving_info(times)
+                
         self.timedict["savingEnd"] = time.time()
         self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
-        self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
+        #self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
             
