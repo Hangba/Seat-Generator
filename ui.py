@@ -223,7 +223,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.label.setText(_translate("MainWindow", "分座位器"))
+        self.label.setText(_translate("MainWindow", "SeatGenerator"))
         self.SetGeneratorPath.setText(_translate("MainWindow", "设置Generation路径"))
         self.SetJudgmentPath.setText(_translate("MainWindow", "设置Judgment路径"))
         self.SetNames.setText(_translate("MainWindow", "设置名单Json路径"))

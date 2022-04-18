@@ -67,7 +67,9 @@ class Seat():
         self.ifInfoOutput = False
         #禁止出现人的位置
         self.forbidden = list()
-
+        #已经出现的Generation
+        self.showed = list()
+        #耗时
         self.timedict=dict()
     
     def setInfo(self,infoList,progressnumber,progressbar):
@@ -94,7 +96,7 @@ class Seat():
                         if i[0] != "#":
                             self.judgment.append(i)
             except FileNotFoundError:
-                self.infoList.addItem("#Processing 载入judgment失败！")
+                self.infoList.addItem("#Processing 载入Judgment失败！")
         else:
             self.judgment = None
 
@@ -113,27 +115,40 @@ class Seat():
     def init_generation(self,seat,deleted):
         #Generation条件初始化
         if bool(self.generation):
-            self.infoList.addItem("#Processing 载入Generation中")
+            if "Loading" not in self.showed:  #防止出现太多次提示
+                self.infoList.addItem("#Processing 载入Generation中")
+                self.showed.append("Loading")
             for g in self.generation:
                 l=g.replace("\n","").split(" ")
                 try:
                     if l[0] == "g1":
-                        self.infoList.addItem("在{}位置生成{}".format(l[2],l[1]))
+                        if l not in self.showed:
+                            self.showed.append(l)
+                            self.infoList.addItem("在{}位置生成{}".format(l[2],l[1]))
                         if l[1] == "None":   #禁止出现的位置
                             self.forbidden.append(eval(l[2]))
                             self.generating(" ",eval(l[2]),deleted=deleted)
                         else:
                             self.generating(l[1],eval(l[2]),deleted=deleted)
+
                     elif l[0]=="g2":
-                        if len(l) == 4:
-                            self.infoList.addItem("在圆心为{},半径为{}的圆内生成{}".format(l[3],l[2],l[1]))
+
+                        if len(l) == 4:    #包含圆心
+                            if l not in self.showed:
+                                self.showed.append(l)
+                                self.infoList.addItem("在圆心为{},半径为{}的圆内生成{}".format(l[3],l[2],l[1]))
                             position = json.loads(l[3].replace("(","[").replace(")","]"))
                             self.generate_by_radius( l[1].split(","), float(l[2]), deleted, position)
                         else:
-                            self.infoList.addItem("在圆心随机,半径为{}的圆内生成{}".format(l[2],l[1]))
+                            if l not in self.showed:
+                                self.showed.append(l)
+                                self.infoList.addItem("在圆心随机,半径为{}的圆内生成{}".format(l[2],l[1]))
                             self.generate_by_radius( l[1].split(","), float(l[2]), deleted)
+
                     elif l[0]=="g3":
-                        self.infoList.addItem("在圆心为{},半径为{}的圆内,以{}为中心生成{}".format(l[4],l[3],l[1],l[2]))
+                        if l not in self.showed:
+                            self.showed.append(l)
+                            self.infoList.addItem("在圆心为{},半径为{}的圆内,以{}为中心生成{}".format(l[4],l[3],l[1],l[2]))
                         position = json.loads(l[4].replace("(","[").replace(")","]"))  #把字符(1,2)转为list
                         self.generate_by_radius( l[2].split(","), float(l[3]), deleted , position , l[1])
                     else:
@@ -142,23 +157,24 @@ class Seat():
                     #输入错误导致项溢出
                     self.infoList.addItem("#Generation 输入错误,项溢出:" + str(e.args))
 
-    def generating(self,stuName,position,deleted = None, enforce = False):
+    def generating(self,stuName,position,deleted = None, enforce = False , ifShow = False):
         # Generation , 在一个固定位置生成
         # seat : list = 生成座位
         # stuName : str = 生成的学生名
         # position : tuple = 位置
         if enforce and self.seat[position[1]][position[0]] != "":
             
-            self.infoList.addItem("#Generating 强制生成{}在{},原位置为：{}".format(stuName, position, self.seat[position[1]][position[0]]))
+            if ifShow: self.infoList.addItem("#Generating 强制生成{}在{},原位置为：{}".format(stuName, position, self.seat[position[1]][position[0]]))
             self.seat[position[1]][position[0]] = stuName
             if bool(deleted):
                 deleted += [stuName]
         elif self.seat[position[1]][position[0]] == "":
-            self.infoList.addItem("#Generating 生成{}在{}".format(stuName, position))
+            if ifShow: self.infoList.addItem("#Generating 生成{}在{}".format(stuName, position))
             self.seat[position[1]][position[0]] = stuName
             if bool(deleted):
                 deleted += [stuName]
-            self.infoList.addItem("#Generating 未生成{}在{}：原位置已有{}".format(stuName, position, self.seat[position[1]][position[0]]))
+        elif (not enforce) and self.seat[position[1]][position[0]] != "":
+            if ifShow: self.infoList.addItem("#Generating 未生成{}在{}：原位置已有{}".format(stuName, position, self.seat[position[1]][position[0]]))
         
     
     def generate_by_radius(self,Student_list:list,radius,deleted,centerPosition=(-1,-1), MainStudent = None):
@@ -292,8 +308,9 @@ class Seat():
     def generate_loop(self,loop_times):
         # 多次生成
         x=loop_times
+        self.infoList.addItem("#Processing 正在生成...")
         while x>0:
-            self.infoList.addItem("#Processing 正在生成第{}张座位".format(loop_times - x))
+            #self.infoList.addItem("#Processing 正在生成第{}张座位".format(loop_times - x))
             x-= self.generate()
 
     def upgrade_saving_info(self,times):
@@ -313,10 +330,7 @@ class Seat():
             self.progressnumber.display(0)
         for c in self.completed:
             # 以图片保存
-            if self.ifInfoOutput:
-                self.infoList.addItem(self.draw(size,c,path))
-            else:
-                self.draw(size,c,path)
+            self.draw(size,c,path)
             # 以json保存
             if path == "":
                 path = os.getcwd()
@@ -327,5 +341,5 @@ class Seat():
                 
         self.timedict["savingEnd"] = time.time()
         self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
-        #self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
+        self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
             

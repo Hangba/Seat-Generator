@@ -16,7 +16,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('分座位器 By:Hangba NNSZ')
+        self.setWindowTitle('SeatGenerator By:Hangba NNSZ')
 
         #绑定函数
         self.SetGeneratorPath.clicked.connect(self.read_generator_path)
@@ -33,7 +33,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         return ( int(width), int(height))
 
     def read_generator_path(self):
-        filePath,fileType = QFileDialog.getOpenFileName(self, "选取Generator文件", os.getcwd(), "All Files(*.*);;Text Files(*.txt)")
+        filePath,fileType = QFileDialog.getOpenFileName(self, "选取Generation文件", os.getcwd(), "All Files(*.*);;Text Files(*.txt)")
         self.GeneratorPath.setText(filePath)
     
     def read_judgment_path(self):
@@ -54,11 +54,11 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
 
     def load_seat(self):
 
-        self.GeneratorPath.setText("F:\\编程\\SeatGenerator\\SeatGenerator\\NewGeneration.txt")
+        """self.GeneratorPath.setText("F:\\编程\\SeatGenerator\\SeatGenerator\\NewGeneration.txt")
         self.Names.setText("F:\\编程\\分座位器\\UI.Ver\\2118name.json")
         self.SavePath.setText("F:\\编程\\分座位器\\Test")
         self.SampleNumber.setText("100")
-        self.splNumber.setText("8")
+        self.splNumber.setText("8")"""
 
         #多线程准备
         self.thread = CustomThread()
