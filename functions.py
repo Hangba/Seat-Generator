@@ -1,9 +1,8 @@
 import json
 import random, time, datetime, math, os
-from threading import Thread
-from turtle import pos
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from threading import Thread
+from PyQt5.QtCore import *
 
 def incircle(center, point, radius):
     # 判断一个点是否在圆中, 返回bool
@@ -45,8 +44,13 @@ def log(output,msg):
     output.addItem(msg)
 
 
-class Seat():
+class Seat(QObject):
+
+    signal = pyqtSignal()
+
+
     def __init__(self,stu_list,spl):
+        super().__init__()
         # stu_list : list 学生名单
         # spl : int 每行学生数
 
@@ -71,6 +75,7 @@ class Seat():
         self.showed = list()
         #耗时
         self.timedict=dict()
+        
     
     def setInfo(self,infoList,progressnumber,progressbar):
         #初始化设置信息输出 输出列表 数字显示 进度条
@@ -295,23 +300,33 @@ class Seat():
                 if j in self.stu_list:
                     count+=1
         # TODO: 解释judgment
+        #确认每个人都在
         if count == len(self.stu_list):
             for i in self.forbidden:
-                
                 if self.seat[i[1]][i[0]]  != " ":
                     return 0
+
+            #在A1.1.0中将修改生成图片方式为只要生成完就画图
             self.completed.append(self.seat)
+            self.draw(self.size,self.completed[-1],self.path)
+            open("{}//{}".format(self.path,str(len(self.completed)-1) + ".json"),"w", encoding="UTF8").write(str(self.completed[-1]))
+            self.signal.emit()
+            if self.loop_times == len(self.completed):
+                self.infoList.addItem("完成！")
+            #self.upgrade_saving_info(len(self.completed))
+
             return 1
         else:
             return 0
 
     def generate_loop(self,loop_times):
         # 多次生成
-        x=loop_times
+        self.x = loop_times
+        self.loop_times = loop_times
         self.infoList.addItem("#Processing 正在生成...")
-        while x>0:
+        while self.x>0:
             #self.infoList.addItem("#Processing 正在生成第{}张座位".format(loop_times - x))
-            x-= self.generate()
+            self.x-= self.generate()
 
     def upgrade_saving_info(self,times):
         self.progressbar.setValue(times)
@@ -337,7 +352,8 @@ class Seat():
             open("{}//{}".format(path,str(self.completed.index(c)) + ".json"),"w", encoding="UTF8").write(str(c))
             times+=1
             if self.ifInfoOutput:
-                self.upgrade_saving_info(times)
+                self.signal.emit()
+                #self.upgrade_saving_info(times)
                 
         self.timedict["savingEnd"] = time.time()
         self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)

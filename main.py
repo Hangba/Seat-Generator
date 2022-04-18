@@ -1,11 +1,13 @@
+from concurrent.futures import thread
 from PyQt5.QtWidgets import QApplication,QWidget,QFileDialog
 import ui,sys,os,functions,json
 from threading import Thread
+from PyQt5.QtCore import *
 
-class CustomThread(Thread):
+class CustomThread():
 
     def __init__(self):
-        super().__init__()
+        pass
 
     def run(self, function, args):
         self.thread1 = Thread(target= function,args = args, daemon=True)
@@ -52,12 +54,16 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         path= QFileDialog.getExistingDirectory(self, "选择保存路径", os.getcwd())
         self.SavePath.setText(path)
 
+    def updateInfo(self):
+        self.ProgressBar.setValue(len(self.seats.completed))
+        self.Progress.display(len(self.seats.completed))
+
     def load_seat(self):
 
         """self.GeneratorPath.setText("F:\\编程\\SeatGenerator\\SeatGenerator\\NewGeneration.txt")
         self.Names.setText("F:\\编程\\分座位器\\UI.Ver\\2118name.json")
         self.SavePath.setText("F:\\编程\\分座位器\\Test")
-        self.SampleNumber.setText("100")
+        self.SampleNumber.setText("72")
         self.splNumber.setText("8")"""
 
         #多线程准备
@@ -88,13 +94,14 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
             try:
                 if int(self.SampleNumber.text())<=0:
                     raise ValueError
-                self.seats.generate_loop(int(self.SampleNumber.text()))
-            
-            #用多线程画图
-                # global 
-                size = self.getsize()
-                path = self.SavePath.text()
-                self.thread.run(self.seats.save,args = (size,path))
+                #传递绘图用参数
+                self.seats.size = self.getsize()
+                self.seats.path = self.SavePath.text()
+                self.ProgressBar.setMaximum(int(self.SampleNumber.text()))
+                self.thread = Thread(target=self.seats.generate_loop,args=[int(self.SampleNumber.text())],daemon=True)
+                self.seats.signal.connect(self.updateInfo)
+                self.thread.start()
+                
                 
             except ValueError as e:
                 self.InfoList.addItem("生成失败,样本数输入错误 : "+str(e))
