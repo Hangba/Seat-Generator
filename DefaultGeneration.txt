@@ -1,0 +1,3 @@
+#g1 StudentName Position 在固定点生成人,如果为None,则为空位
+#g2 StudentList radius (circleCenterPosition) 在一个圆内生成学生列表中的人,StudentList用英文逗号分隔
+#g3 MainStudent StudentList radius circleCenterPosition 给定圆心和中心学生在一个圆内生成学生列表中的人,StudentList用英文逗号分隔

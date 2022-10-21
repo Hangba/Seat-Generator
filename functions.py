@@ -75,6 +75,7 @@ class Seat(QObject):
         self.showed = list()
         #耗时
         self.timedict=dict()
+
         
     
     def setInfo(self,infoList,progressnumber,progressbar):
@@ -86,7 +87,7 @@ class Seat(QObject):
 
     def initialization(self):
         # 初始化座位列表
-        self.seatsize = ( self.spl, int(len(self.stu_list) / self.spl) + 1)
+        self.seatsize = [ self.spl, int(len(self.stu_list) / self.spl) + 1]
         self.seat = [["" for _ in range(self.spl)] for _ in range(self.seatsize[1])]
         self.name = self.stu_list.copy()
         self.deleted = list()
@@ -158,6 +159,7 @@ class Seat(QObject):
                         self.generate_by_radius( l[2].split(","), float(l[3]), deleted , position , l[1])
                     else:
                         self.infoList.addItem("#Generation 操作符输入错误:{}".format(g))
+                        raise ValueError
                 except IndexError as e:
                     #输入错误导致项溢出
                     self.infoList.addItem("#Generation 输入错误,项溢出:" + str(e.args))
@@ -167,17 +169,25 @@ class Seat(QObject):
         # seat : list = 生成座位
         # stuName : str = 生成的学生名
         # position : tuple = 位置
+        if position[0] > self.seatsize[0]-1:
+            #横坐标过大
+            raise ValueError
+        elif position[1] > self.seatsize[1] -1 :
+            #添加的行数在现有之外
+            for _ in range(position[1] - self.seatsize[1] +1):
+                self.seatsize[1]+=1
+                self.seat.append(['']*self.spl)
+
+
         if enforce and self.seat[position[1]][position[0]] != "":
             
             if ifShow: self.infoList.addItem("#Generating 强制生成{}在{},原位置为：{}".format(stuName, position, self.seat[position[1]][position[0]]))
             self.seat[position[1]][position[0]] = stuName
-            if bool(deleted):
-                deleted += [stuName]
+            deleted += [stuName]
         elif self.seat[position[1]][position[0]] == "":
             if ifShow: self.infoList.addItem("#Generating 生成{}在{}".format(stuName, position))
             self.seat[position[1]][position[0]] = stuName
-            if bool(deleted):
-                deleted += [stuName]
+            deleted += [stuName]
         elif (not enforce) and self.seat[position[1]][position[0]] != "":
             if ifShow: self.infoList.addItem("#Generating 未生成{}在{}：原位置已有{}".format(stuName, position, self.seat[position[1]][position[0]]))
         
@@ -207,9 +217,9 @@ class Seat(QObject):
                 self.infoList.addItem("#GenerationG2 坐标错误")
 
         if bool(MainStudent):
-            self.generating(centerStudent, centerPosition,self.deleted)
+            self.generating(centerStudent, centerPosition, deleted)
         else:
-            self.generating(centerStudent, centerPosition)
+            self.generating(centerStudent, centerPosition, deleted)
 
         point_list = integerpoint_in_circle(centerPosition, radius).copy()
         random.shuffle(point_list)
@@ -247,14 +257,14 @@ class Seat(QObject):
 
         image = Image.new("RGB", size , (0, 0, 0))
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype("Deng.ttf", 72)
+        font = ImageFont.truetype("Deng.ttf", 55)
         image.filter(ImageFilter.BLUR)
         for i in range(self.seatsize[1]):
             for j in range(self.spl):
                 #TODO:根据图片大小和spl决定w,h
-                w = 20 + 240 * j
+                w = 30 + 240 * j
                 h = 120 + 120 * i
-                if i < self.seatsize[1]-1:
+                if i < self.seatsize[1]:
                     draw.text((w, h), seat[i][j], font=font)
                 else:
                     try:
@@ -291,8 +301,10 @@ class Seat(QObject):
         #如果空格不够填完所有学生
         if len(stu_copy)>0:
             for i in range(0,len(stu_copy),self.spl):
-                self.seat.append(stu_copy[:len(self.spl)])
-                del stu_copy[:len(self.spl)]
+                appendix = stu_copy[:self.spl]
+                self.seat.append(stu_copy[:self.spl]+ ['']*(self.spl-len(stu_copy[:self.spl])) )
+                self.seatsize[1]+=1
+                del stu_copy[:self.spl]
 
         count = 0
         for i in self.seat:
@@ -302,6 +314,7 @@ class Seat(QObject):
         # TODO: 解释judgment
         #确认每个人都在
         if count == len(self.stu_list):
+
             for i in self.forbidden:
                 if self.seat[i[1]][i[0]]  != " ":
                     return 0
@@ -334,7 +347,7 @@ class Seat(QObject):
         
 
     def save(self,size,path):
-    # 保存：生成图片、csv、json文件,保存路径
+    # 统一保存：生成图片、csv、json文件,保存路径
     # x,y : tuple 图片宽、高
         times = 0
         self.timedict["savingBegin"] = time.time()

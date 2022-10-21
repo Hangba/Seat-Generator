@@ -1,4 +1,3 @@
-from concurrent.futures import thread
 from PyQt5.QtWidgets import QApplication,QWidget,QFileDialog
 import ui,sys,os,functions,json
 from threading import Thread
@@ -82,11 +81,11 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
             self.seats = functions.Seat( [] , 0)
             self.seats.setInfo(self.InfoList,self.Progress,self.ProgressBar)
             self.InfoList.addItem("载入失败：名单文件不存在")
-        except ValueError:
+        except ValueError as e:
             #spl数据错误
             self.seats = functions.Seat( [] , 0)
             self.seats.setInfo(self.InfoList,self.Progress,self.ProgressBar)
-            self.InfoList.addItem("载入失败：每行学生数输入错误")
+            self.InfoList.addItem("载入失败：每行学生数输入错误 : "+str(e))
         
         if isLoadingSuccessful:
             #载入条件
