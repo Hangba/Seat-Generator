@@ -1,0 +1,12 @@
+#supporting for these comparison operators: >, <, >=, <=, =
+#StudentsList : Tom,Dick,Harry……
+
+#distance Stu1 Stu2 (comparison operators) length
+#getx Stu (comparison operators) x
+#gety Stu (comparison operators) y
+#getxy Stu position Verify given student's position equals to given position.
+#maxdistance StudentsList (comparison operators) length  Check for if the maximum distance of students in the list is greater than given length.
+#mindistance StudentsList (comparison operators) length  Check for if the minimum distance of students in the list is less than given length.
+
+
+

@@ -3,6 +3,7 @@ import random, time, datetime, math, os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from threading import Thread
 from PyQt5.QtCore import *
+from matplotlib.artist import getp
 
 def incircle(center, point, radius):
     # 判断一个点是否在圆中, 返回bool
@@ -15,6 +16,45 @@ def incircle(center, point, radius):
         return True
     else:
         return False
+
+def getPosition(seat,student):
+    #给定座位列表，学生名，返回坐标
+    pos = (-1,-1)
+    for i in range(len(seat)):
+        for j in seat[i]:
+            if student == j:
+                pos = (seat[i].index(j),i)
+    if pos == (-1,-1):
+        raise ValueError
+    else:
+        return pos
+    
+def getx(seat,student):
+    return getPosition(seat,student)[0]
+def gety(seat,student):
+    return getPosition(seat,student)[0]
+
+def getDistance(seat,Stu1:str,Stu2:str):
+    pos1 = getPosition(seat,Stu1)
+    pos2 = getPosition(seat,Stu2)
+    dx = pos1[0]-pos2[0]
+    dy = pos1[1]-pos2[1]
+    return (dx**2+dy**2)**0.5
+
+def maxDistance(seat,Stus):
+    #返回stus列表里面的距离的最大值
+    lengths = []
+    for stu1 in Stus:
+        for stu2 in Stus:
+            if stu1!=stu2: lengths.append(getDistance(seat,stu1,stu2))
+    return max(lengths)
+
+def minDistance(seat,Stus):
+    lengths = []
+    for stu1 in Stus:
+        for stu2 in Stus:
+            if stu1!=stu2: lengths.append(getDistance(seat,stu1,stu2))
+    return min(lengths)
 
 def integerpoint_in_circle(center, radius):
     # 返回已知圆心和半径的圆中的整数点(排除圆心)
@@ -75,6 +115,8 @@ class Seat(QObject):
         self.showed = list()
         #耗时
         self.timedict=dict()
+        #时间提醒阈值
+        self.notify = 20000
 
         
     
@@ -99,21 +141,25 @@ class Seat(QObject):
             try:
                 with open(judgment_path, "r", encoding="utf8") as e:
                     for i in e.readlines():
-                        if i[0] != "#":
+                        
+                        if i[0] not in "#\n ":
                             self.judgment.append(i)
             except FileNotFoundError:
                 self.infoList.addItem("#Processing 载入Judgment失败！")
         else:
             self.judgment = None
+            self.infoList.addItem("#Processing 无Judgment输入")
 
         if generation_path != "":
             try:
                 with open(generation_path, "r", encoding="utf8") as e:
                     for j in e.readlines():
-                        if j[0] != "#":
+                        if j[0] not in "#\n ":
                             self.generation.append(j)
             except FileNotFoundError:
                 self.infoList.addItem("#Processing 载入Generation失败！")
+        
+        
         else:
             self.generation = None
             self.infoList.addItem("#Processing 无Generation输入")
@@ -163,6 +209,73 @@ class Seat(QObject):
                 except IndexError as e:
                     #输入错误导致项溢出
                     self.infoList.addItem("#Generation 输入错误,项溢出:" + str(e.args))
+    
+    def init_judgment(self,seat):
+        ans = True
+        operators = ['<','>','<=','>=','=']
+        if bool(self.judgment):
+            if "Loading" not in self.showed:  #防止出现太多次提示
+                self.infoList.addItem("#Processing 载入Judgment中")
+                self.showed.append("Loading")
+            for g in self.judgment:
+                l=g.replace("\n","").split(" ")
+                if l[0]=="distance":
+                    #距离关系
+                    stu1 = l[1]
+                    stu2 = l[2]
+                    o = l[3]
+                    length = l[4]
+                    if o not in operators or stu1 not in self.stu_list or stu2 not in self.stu_list:
+                        raise RuntimeError("操作符错误 或 学生姓名输入错误")
+                    ans = ans and eval(str(getDistance(self.seat,stu1,stu2))+o+length)
+
+                elif l[0]=="getx":
+                    #横坐标关系
+                    stu = l[1]
+                    o = l[2]
+                    x = l[3]
+                    if o not in operators or stu not in self.stu_list:
+                        raise RuntimeError("操作符错误 或 学生姓名输入错误")
+                    ans = ans and eval(str(getx(self.seat,stu))+o+x)
+                
+                elif l[0]=="gety":
+                    #纵坐标关系
+                    stu = l[1]
+                    o = l[2]
+                    y = l[3]
+                    if o not in operators or stu not in self.stu_list:
+                        raise RuntimeError("操作符错误 或 学生姓名输入错误")
+                    ans = ans and eval(str(gety(self.seat,stu))+o+x)
+                
+                elif l[0]=="getxy":
+                    #纵坐标关系
+                    stu = l[1]
+                    pos = l[2]
+                    if stu not in self.stu_list:
+                        raise RuntimeError("学生姓名输入错误")
+                    ans = ans and eval(str(getPosition(self.seat,stu))+"=="+pos)
+                
+                elif l[0]=="maxdistance":
+                    stus = l[1].split(",")
+                    o = l[2]
+                    length = l[3]
+                    if o not in operators:
+                        raise RuntimeError("学生姓名输入错误")
+                    ans = ans and eval(str(maxDistance(self.seat,stus))+o+length)
+                
+                elif l[0]=="mindistance":
+                    stus = l[1].split(",")
+                    o = l[2]
+                    length = l[3]
+                    if o not in operators:
+                        raise RuntimeError("学生姓名输入错误")
+                    ans = ans and eval(str(minDistance(self.seat,stus))+o+length)
+                
+                else:
+                    self.infoList.addItem("#Judgment 操作符输入错误:{}".format(g))
+                    raise ValueError
+        return ans
+
 
     def generating(self,stuName,position,deleted = None, enforce = False , ifShow = False):
         # Generation , 在一个固定位置生成
@@ -254,7 +367,9 @@ class Seat(QObject):
         # 画出座位表
         # size:tuple 图片大小
         # seat:座位
-
+        if savePath == "":
+            self.infoList.addItem("#Processing 请输入保存位置！")
+            raise RuntimeError
         image = Image.new("RGB", size , (0, 0, 0))
         draw = ImageDraw.Draw(image)
         font = ImageFont.truetype("Deng.ttf", 55)
@@ -311,7 +426,10 @@ class Seat(QObject):
             for j in i:
                 if j in self.stu_list:
                     count+=1
-        # TODO: 解释judgment
+        
+        if bool(self.judgment) and not self.init_judgment(self.seat):
+            return 0
+            
         #确认每个人都在
         if count == len(self.stu_list):
 
@@ -324,10 +442,10 @@ class Seat(QObject):
             self.draw(self.size,self.completed[-1],self.path)
             open("{}//{}".format(self.path,str(len(self.completed)-1) + ".json"),"w", encoding="UTF8").write(str(self.completed[-1]))
             self.signal.emit()
-            self.profermance_estimater(time.time()-time0)
+            self.performance_estimater(time.time()-time0)
             if self.loop_times == len(self.completed):
                 self.infoList.addItem("完成！")
-                avgTime = self.profermance[0]/self.profermance[1]
+                avgTime = self.performance[0]/self.performance[1]
                 self.infoList.addItem(f"平均时长{avgTime:.4f}s/张")
             #self.upgrade_saving_info(len(self.completed))
 
@@ -339,22 +457,27 @@ class Seat(QObject):
 
     def generate_loop(self,loop_times):
         # 多次生成
-        self.profermance = [0,0]
+        self.performance = [0,0]
+        self.runtime = 0 #防止陷入死循环
         self.x = loop_times
         self.loop_times = loop_times
         self.infoList.addItem("#Processing 正在生成...")
         while self.x>0:
             #self.infoList.addItem("#Processing 正在生成第{}张座位".format(loop_times - x))
             self.x-= self.generate()
+            self.runtime+=1
+            if self.runtime>=self.notify:
+                self.infoList.addItem("#Processing 似乎陷入较长循环，建议修改judgment")
+                self.runtime =0
 
     def upgrade_saving_info(self,times):
         self.progressbar.setValue(times)
         self.progressnumber.display(times)
         
-    def profermance_estimater(self,interval):
+    def performance_estimater(self,interval):
         #评估生成速度
-        self.profermance[0]+=interval
-        self.profermance[1]+=1
+        self.performance[0]+=interval
+        self.performance[1]+=1
 
     def save(self,size,path):
     # 统一保存：生成图片、csv、json文件,保存路径
