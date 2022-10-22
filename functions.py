@@ -117,6 +117,10 @@ class Seat(QObject):
         self.timedict=dict()
         #时间提醒阈值
         self.notify = 20000
+        #之前的座位
+        self.former = []
+        #后排系数（排数*系数向上取整，此排包括之后的都算后排）
+        self.backward = 0.8
 
         
     
@@ -209,7 +213,7 @@ class Seat(QObject):
                 except IndexError as e:
                     #输入错误导致项溢出
                     self.infoList.addItem("#Generation 输入错误,项溢出:" + str(e.args))
-    
+
     def init_judgment(self,seat):
         ans = True
         operators = ['<','>','<=','>=','=']
@@ -276,6 +280,25 @@ class Seat(QObject):
                     raise ValueError
         return ans
 
+    def isFair(self,seat,former):
+        #使座位更公平
+        if len(former[0])!=len(seat[0]):
+            self.infoList.addItem("两次座位每行人数不同！")
+            raise RuntimeError
+
+        for stu in self.stu_list:
+            #防止坐同一个位置
+            if getPosition(seat,stu) == getPosition(former,stu):
+                return False
+        
+        line = len(former)
+        new_line = len(seat)
+        for stu in self.stu_list:
+            #防止有人一直坐后排
+            if gety(former,stu)>=int(line*self.backward)+1 and gety(seat,stu)>=int(new_line*self.backward)+1:
+                return False
+        
+        return True
 
     def generating(self,stuName,position,deleted = None, enforce = False , ifShow = False):
         # Generation , 在一个固定位置生成
@@ -398,6 +421,7 @@ class Seat(QObject):
         random.shuffle(stu_copy)
         self.initialization()
 
+
         self.init_generation(self.seat,self.deleted)
         #删去已经存在的人
         for d in stu_copy:
@@ -428,7 +452,19 @@ class Seat(QObject):
                     count+=1
         
         if bool(self.judgment) and not self.init_judgment(self.seat):
+            #Judgment判断
             return 0
+
+        if self.formerPath!="":
+            #上次座位判断
+            try:
+                self.former=json.loads(open(self.formerPath,"r",encoding="utf-8").read())
+            except UnicodeDecodeError:
+                self.infoList.addItem("前座位文件选择错误")
+                raise RuntimeError
+            
+            if not self.isFair(self.seat,self.former):
+                return 0
             
         #确认每个人都在
         if count == len(self.stu_list):
@@ -440,7 +476,7 @@ class Seat(QObject):
             #在A1.1.0中将修改生成图片方式为只要生成完就画图
             self.completed.append(self.seat)
             self.draw(self.size,self.completed[-1],self.path)
-            open("{}//{}".format(self.path,str(len(self.completed)-1) + ".json"),"w", encoding="UTF8").write(str(self.completed[-1]))
+            open("{}//{}".format(self.path,str(len(self.completed)-1) + ".json"),"w", encoding="UTF8").write(str(self.completed[-1]).replace("'",'"'))
             self.signal.emit()
             self.performance_estimater(time.time()-time0)
             if self.loop_times == len(self.completed):

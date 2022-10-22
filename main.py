@@ -59,12 +59,6 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
 
     def load_seat(self):
 
-        """self.GeneratorPath.setText("F:\\编程\\SeatGenerator\\SeatGenerator\\NewGeneration.txt")
-        self.Names.setText("F:\\编程\\分座位器\\UI.Ver\\2118name.json")
-        self.SavePath.setText("F:\\编程\\分座位器\\Test")
-        self.SampleNumber.setText("72")
-        self.splNumber.setText("8")"""
-
         #多线程准备
         self.thread = CustomThread()
         #载入名单
@@ -96,6 +90,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
                 #传递绘图用参数
                 self.seats.size = self.getsize()
                 self.seats.path = self.SavePath.text()
+                self.seats.formerPath = self.JsonPath.text()
                 self.ProgressBar.setMaximum(int(self.SampleNumber.text()))
                 self.thread = Thread(target=self.seats.generate_loop,args=[int(self.SampleNumber.text())],daemon=True)
                 self.seats.signal.connect(self.updateInfo)
