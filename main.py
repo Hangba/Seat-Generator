@@ -17,7 +17,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('SeatGenerator By:Hangba NNSZ')
+        self.setWindowTitle('Seat Generator By Hangba NNSZ')
 
         #绑定函数
         self.SetGeneratorPath.clicked.connect(self.read_generator_path)

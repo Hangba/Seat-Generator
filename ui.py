@@ -1,4 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon
+import ctypes
 
 
 class Ui_MainWindow(object):
@@ -8,7 +10,9 @@ class Ui_MainWindow(object):
         MainWindow.resize(800, 578)
         MainWindow.setFixedSize(800,578)
         MainWindow.setAcceptDrops(False)
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Seat Generator") #修改任务栏图标
         MainWindow.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
+        MainWindow.setWindowIcon(QIcon("wst.ico"))
         #MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -224,7 +228,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.label.setText(_translate("MainWindow", "SeatGenerator"))
+        self.label.setText(_translate("MainWindow", "Seat Generator"))
         self.SetGeneratorPath.setText(_translate("MainWindow", "设置Generation路径"))
         self.SetJudgmentPath.setText(_translate("MainWindow", "设置Judgment路径"))
         self.SetNames.setText(_translate("MainWindow", "设置名单Json路径"))
