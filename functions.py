@@ -214,7 +214,7 @@ class Seat(QObject):
             x,y = centerPosition
             #判断坐标是否合法
             if not (x >= 0 and x <= size[0] - 1 and y >= 0 and y <= size[1] - 1):
-                self.infoList.addItem("#GenerationG2 坐标错误")
+                self.infoList.addItem(f"#GenerationG2 坐标错误:({x},{y})")
 
         if bool(MainStudent):
             self.generating(centerStudent, centerPosition, deleted)
@@ -278,7 +278,7 @@ class Seat(QObject):
 
     def generate(self):
         #尝试生成 成功返回1 否则返回0
-
+        time0 = time.time()
         stu_copy = self.stu_list.copy()
         random.shuffle(stu_copy)
         self.initialization()
@@ -324,16 +324,22 @@ class Seat(QObject):
             self.draw(self.size,self.completed[-1],self.path)
             open("{}//{}".format(self.path,str(len(self.completed)-1) + ".json"),"w", encoding="UTF8").write(str(self.completed[-1]))
             self.signal.emit()
+            self.profermance_estimater(time.time()-time0)
             if self.loop_times == len(self.completed):
                 self.infoList.addItem("完成！")
+                avgTime = self.profermance[0]/self.profermance[1]
+                self.infoList.addItem(f"平均时长{avgTime:.4f}s/张")
             #self.upgrade_saving_info(len(self.completed))
 
+            
+            
             return 1
         else:
             return 0
 
     def generate_loop(self,loop_times):
         # 多次生成
+        self.profermance = [0,0]
         self.x = loop_times
         self.loop_times = loop_times
         self.infoList.addItem("#Processing 正在生成...")
@@ -345,6 +351,10 @@ class Seat(QObject):
         self.progressbar.setValue(times)
         self.progressnumber.display(times)
         
+    def profermance_estimater(self,interval):
+        #评估生成速度
+        self.profermance[0]+=interval
+        self.profermance[1]+=1
 
     def save(self,size,path):
     # 统一保存：生成图片、csv、json文件,保存路径
