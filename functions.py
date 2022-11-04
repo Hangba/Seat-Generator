@@ -120,7 +120,7 @@ class Seat(QObject):
         #之前的座位
         self.former = []
         #后排系数（排数*系数向上取整，此排包括之后的都算后排）
-        self.backward = 0.8
+        self.backward = 0.7
 
         
     
@@ -295,6 +295,7 @@ class Seat(QObject):
         new_line = len(seat)
         for stu in self.stu_list:
             #防止有人一直坐后排
+
             if gety(former,stu)>=int(line*self.backward)+1 and gety(seat,stu)>=int(new_line*self.backward)+1:
                 return False
         
@@ -481,6 +482,11 @@ class Seat(QObject):
             self.performance_estimater(time.time()-time0)
             if self.loop_times == len(self.completed):
                 self.infoList.addItem("完成！")
+                #存储当前输入的参数
+                import sys
+                f = open(os.path.dirname(sys.argv[0]) + "\\argument.json","w",encoding="utf8")
+                json.dump([self.path_generation,self.path_judgment,self.path_names,self.formerPath,self.path,self.loop_times,self.spl,self.size],f)
+                f.close()
                 avgTime = self.performance[0]/self.performance[1]
                 self.infoList.addItem(f"平均时长{avgTime:.4f}s/张")
             #self.upgrade_saving_info(len(self.completed))

@@ -10,7 +10,7 @@ class Ui_MainWindow(object):
         MainWindow.resize(800, 578)
         MainWindow.setFixedSize(800,578)
         MainWindow.setAcceptDrops(False)
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Seat Generator") #修改任务栏图标
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Seat Generator") #修改任务栏图
         MainWindow.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
         MainWindow.setWindowIcon(QIcon("wst.ico"))
         #MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)

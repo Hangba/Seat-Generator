@@ -26,7 +26,20 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         self.SetJsonPath.clicked.connect(self.read_Json_path)
         self.SetSavePath.clicked.connect(self.read_save_path)
         self.Generate.clicked.connect(self.load_seat)
-        
+
+        #初始化上次的参数
+        if os.path.exists(os.path.dirname(sys.argv[0]) + "\\argument.json"):
+            l = json.load(open(os.path.dirname(sys.argv[0]) + "\\argument.json","r",encoding="utf8"))
+
+            self.GeneratorPath.setText(l[0])
+            self.JudgmentPath.setText(l[1])
+            self.Names.setText(l[2])
+            self.JsonPath.setText(l[3])
+            self.SavePath.setText(l[4])
+            self.SampleNumber.setText(str(l[5]))
+            self.splNumber.setText(str(l[6]))
+            self.PicWidth.setText(str(l[7][0]))
+            self.PicHeight.setText(str(l[7][1]))
 
     def getsize(self):
         width = self.PicWidth.text()
@@ -67,6 +80,7 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
             with open(self.Names.text(),"r",encoding="UTF8") as e:
                 name = json.loads(e.read())
                 self.seats = functions.Seat( name , int( self.splNumber.text() ))
+                self.seats.path_names = self.Names.text()
                 self.seats.setInfo(self.InfoList,self.Progress,self.ProgressBar)
             self.InfoList.addItem("载入Seat成功！")
             isLoadingSuccessful = True
@@ -84,6 +98,8 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         if isLoadingSuccessful:
             #载入条件
             self.seats.init_factor(self.JudgmentPath.text(),self.GeneratorPath.text())
+            self.seats.path_generation = self.GeneratorPath.text()
+            self.seats.path_judgment = self.JudgmentPath.text()
             try:
                 if int(self.SampleNumber.text())<=0:
                     raise ValueError
