@@ -3,7 +3,6 @@ import random, time, datetime, math, os
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from threading import Thread
 from PyQt5.QtCore import *
-from matplotlib.artist import getp
 
 def incircle(center, point, radius):
     # 判断一个点是否在圆中, 返回bool
@@ -120,7 +119,7 @@ class Seat(QObject):
         #之前的座位
         self.former = []
         #后排系数（排数*系数向上取整，此排包括之后的都算后排）
-        self.backward = 0.7
+        self.backward = 0.9
 
         
     
@@ -295,8 +294,8 @@ class Seat(QObject):
         new_line = len(seat)
         for stu in self.stu_list:
             #防止有人一直坐后排
-
-            if gety(former,stu)>=int(line*self.backward)+1 and gety(seat,stu)>=int(new_line*self.backward)+1:
+            if gety(former,stu)>=int(line*self.backward) and gety(seat,stu)>=int(new_line*self.backward):
+               # print(stu,gety(former,stu),int(line*self.backward)+1,gety(seat,stu),int(new_line*self.backward)+1,"不符合")
                 return False
         
         return True
