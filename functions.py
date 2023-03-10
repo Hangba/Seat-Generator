@@ -113,6 +113,8 @@ def get_appropriate_font_size(string,width,font_path,margin_amount=0,margin_rate
     wps,h = font.getsize(" ")
     return int(font_size)-1,wpc,wps
 
+def shuffle(iterable):
+    return sorted(iterable, key=lambda x: os.urandom(1))
         
 
 class Seat(QObject):
@@ -472,7 +474,8 @@ class Seat(QObject):
         #尝试生成 成功返回1 否则返回0
         time0 = time.time()
         stu_copy = self.stu_list.copy()
-        random.shuffle(stu_copy)
+        shuffle(stu_copy)
+        #random.shuffle(stu_copy)
         self.initialization()
 
 
