@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QApplication,QWidget,QFileDialog
 import ui,sys,os,functions,json
 from threading import Thread
 from PyQt5.QtCore import *
+import configparser
 
 class CustomThread():
 
@@ -18,6 +19,8 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle('Seat Generator By HangbaSteve')
+        self.config = configparser.ConfigParser()
+        self.config.read("setting.ini",encoding="UTF8")  #读取ini文件
 
         #绑定函数
         self.SetGeneratorPath.clicked.connect(self.read_generator_path)
@@ -79,7 +82,9 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
         try:
             with open(self.Names.text(),"r",encoding="UTF8") as e:
                 name = json.loads(e.read())
-                self.seats = functions.Seat( name , int( self.splNumber.text() ))
+                path = self.config.get('BASIC', 'font_path')
+                self.seats = functions.Seat(name,int(self.splNumber.text()),path)
+                self.seats.config = self.config
                 self.seats.path_names = self.Names.text()
                 self.seats.setInfo(self.InfoList,self.Progress,self.ProgressBar)
             self.InfoList.addItem("载入Seat成功！")
