@@ -78,17 +78,49 @@ def integerpoint_in_circle(center, radius):
 
     return point_list
 
-def log(output,msg):
-    #在窗口列表中记录信息
-    output.addItem(msg)
+def get_max_length(student_list,spl):
+    #获得每行最大中文字符个数
+    sorted_list = sorted(student_list,key=len,reverse=True)
+    selected_list = sorted_list[:spl]
+    length = len("".join(selected_list))
+    
+    return length
 
+def get_appropriate_font_size(string,width,font_path,margin_amount=0,margin_rate = 1,accuracy = 0.05) -> list[int]:
+    #根据宽度获取合适的字号
+    #args: string：要显示的字符, width:目标宽（仅从字符最左到字符最右）
+    #margin_amount: 字符中间空格数， margin_rate:间隔与单个中文字符宽度大小之比
+    max_iter = 50
+    current = 0 #当前迭代次数
+    font_size = 20 #初始字号
+    wpc = 0
+    while current <= max_iter:
+        current+=1
+        font = ImageFont.truetype(font_path,font_size)
+        w,h = font.getsize(string)
+        wpc = w / len(string) # width per character
+        true_width = width - wpc*margin_rate*margin_rate
+
+        delta_w = abs(w-true_width)
+        if delta_w / true_width <= accuracy:
+            break
+        elif w > true_width:
+            font_size /= (1+delta_w / true_width)
+            font_size = int(font_size)
+        elif w < true_width:
+            font_size *= (1+delta_w / true_width)
+            font_size = int(font_size)
+    wps,h = font.getsize(" ")
+    return int(font_size)-1,wpc,wps
+
+        
 
 class Seat(QObject):
 
     signal = pyqtSignal()
 
 
-    def __init__(self,stu_list,spl):
+    def __init__(self,stu_list,spl,font_path = "Deng.ttf"):
         super().__init__()
         # stu_list : list 学生名单
         # spl : int 每行学生数
@@ -120,6 +152,8 @@ class Seat(QObject):
         self.former = []
         #后排系数（排数*系数向上取整，此排包括之后的都算后排）
         self.backward = 0.9
+        #字体路径
+        self.fontPath = font_path
 
         
     
@@ -386,22 +420,35 @@ class Seat(QObject):
 
 
 
-    def draw(self,size,seat,savePath):
+    def draw(self,size,seat,savePath,marginx_rate = 0.02,marginy_rate = 0.11,dy = 1.5):
         # 画出座位表
         # size:tuple 图片大小
         # seat:座位
+        # marginx_rate 两边空格与整张图的宽的比
+        # marginx_rate 第一行到顶端距离与整张图的高的比
+        # dy 每一行距离大小与字符宽度之比
         if savePath == "":
             self.infoList.addItem("#Processing 请输入保存位置！")
             raise RuntimeError
         image = Image.new("RGB", size , (0, 0, 0))
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype("Deng.ttf", 55)
+        #font = ImageFont.truetype(self.fontPath, 55)
         image.filter(ImageFilter.BLUR)
+
+        max_length = len(sorted(self.stu_list,key=len,reverse=True)[0])# 名字最长字符数
+        l = max_length*self.spl
+        #self.infoList.addItem("正在迭代获取最合适字号")
+        fontSize,wpc,wps = get_appropriate_font_size("你"*l,size[0]*(1-2*marginx_rate),self.fontPath,self.spl-1)
+        #width per character and width per space
+        font = ImageFont.truetype(self.fontPath, fontSize)
+        #self.infoList.addItem("字号设置完成")
+
+
         for i in range(self.seatsize[1]):
             for j in range(self.spl):
-                #TODO:根据图片大小和spl决定w,h
-                w = 30 + 240 * j
-                h = 120 + 120 * i
+                
+                w = marginx_rate*size[0] + (wpc * max_length + wps) * j
+                h = size[1]*marginy_rate + wpc * dy * i
                 if i < self.seatsize[1]:
                     draw.text((w, h), seat[i][j], font=font)
                 else:
