@@ -1,117 +1,114 @@
-import json
-import random, time, datetime, math, os
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from threading import Thread
-from PyQt5.QtCore import *
 import configparser
+import json
+import random
+import time
+import datetime
+import math
+import os
+
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PyQt5.QtCore import *
+from threading import Thread
 
 def incircle(center, point, radius):
-    # 判断一个点是否在圆中, 返回bool
-    # args:
-    # center : tuple circle centre position 
-    # point : tuple target point position
-    # radius : float
-    dis = math.sqrt((center[0] - point[0]) ** 2 + (center[1] - point[1]) ** 2)
-    if dis <= radius:
-        return True
-    else:
-        return False
+  # 判断一个点是否在圆中，返回布尔值
+  dis = math.sqrt((center[0] - point[0]) ** 2 + (center[1] - point[1]) ** 2)
+  return dis <= radius
 
-def getPosition(seat,student):
-    #给定座位列表，学生名，返回坐标
-    pos = (-1,-1)
-    for i in range(len(seat)):
-        for j in seat[i]:
-            if student == j:
-                pos = (seat[i].index(j),i)
-    if pos == (-1,-1):
-        raise ValueError
-    else:
-        return pos
-    
-def getx(seat,student):
-    return getPosition(seat,student)[0]
-def gety(seat,student):
-    return getPosition(seat,student)[0]
+def getPosition(seat, student):
+  # 给定座位列表和学生名，返回学生坐标
+  for i in range(len(seat)):
+    for j in range(len(seat[i])):
+      if seat[i][j] == student:
+        return j, i
+  raise ValueError("student not found")
 
-def getDistance(seat,Stu1:str,Stu2:str):
-    pos1 = getPosition(seat,Stu1)
-    pos2 = getPosition(seat,Stu2)
-    dx = pos1[0]-pos2[0]
-    dy = pos1[1]-pos2[1]
-    return (dx**2+dy**2)**0.5
+def getx(seat, student):
+  return getPosition(seat, student)[0]
 
-def maxDistance(seat,Stus):
-    #返回stus列表里面的距离的最大值
-    lengths = []
-    for stu1 in Stus:
-        for stu2 in Stus:
-            if stu1!=stu2: lengths.append(getDistance(seat,stu1,stu2))
-    return max(lengths)
+def gety(seat, student):
+  return getPosition(seat, student)[1]
 
-def minDistance(seat,Stus):
-    lengths = []
-    for stu1 in Stus:
-        for stu2 in Stus:
-            if stu1!=stu2: lengths.append(getDistance(seat,stu1,stu2))
-    return min(lengths)
+def getDistance(seat, student1, student2):
+  # 返回两个学生之间的距离
+  pos1 = getPosition(seat, student1)
+  pos2 = getPosition(seat, student2)
+  dx = pos1[0] - pos2[0]
+  dy = pos1[1] - pos2[1]
+  return math.sqrt(dx ** 2 + dy ** 2)
+
+def maxDistance(seat, students):
+  # 返回学生列表中两两之间距离的最大值
+  distances = []
+  for i in range(len(students)):
+    for j in range(i + 1, len(students)):
+      distances.append(getDistance(seat, students[i], students[j]))
+  return max(distances)
+
+def minDistance(seat, students):
+  # 返回学生列表中两两之间距离的最小值
+  distances = []
+  for i in range(len(students)):
+    for j in range(i + 1, len(students)):
+      distances.append(getDistance(seat, students[i], students[j]))
+  return min(distances)
 
 def integerpoint_in_circle(center, radius):
-    # 返回已知圆心和半径的圆中的整数点(排除圆心)
-    # args:
-    # center : tuple (x,y)
-    # radius : float
-    xs = center[0] - radius
-    ys = center[1] - radius
-    xe = center[0] + radius
-    ye = center[1] + radius
-
-    point_list = list()
-    for x in range(int(xs), int(xe) + 1):
-        for y in range(int(ys), int(ye) + 1):
-            if (
-                incircle(center, (x, y), radius)
-                and center != (x, y)
-                and x >= 0
-                and y >= 0
-            ):
-                point_list.append((x, y))
-
-    return point_list
+  # 返回已知圆心和半径的圆中的整数点（排除圆心）
+  xs = center[0] - radius
+  ys = center[1] - radius
+  xe = center[0] + radius
+  ye = center[1] + radius
+  points = []
+  for x in range(int(xs), int(xe) + 1):
+    for y in range(int(ys), int(ye) + 1):
+      if incircle(center, (x, y), radius) and center != (x, y) and x >= 0 and y >= 0:
+        points.append((x, y))
+  return points
 
 def get_max_length(student_list,spl):
     #获得每行最大中文字符个数
     sorted_list = sorted(student_list,key=len,reverse=True)
     selected_list = sorted_list[:spl]
     length = len("".join(selected_list))
-    
     return length
 
-def get_appropriate_font_size(string,width,font_path,margin_amount=0,margin_rate = 1,accuracy = 0.05,max_iter = 50) -> list[int]:
-    #根据宽度获取合适的字号
-    #args: string：要显示的字符, width:目标宽（仅从字符最左到字符最右）
-    #margin_amount: 字符中间空格数， margin_rate:间隔与单个中文字符宽度大小之比
-    current = 0 #当前迭代次数
-    font_size = 20 #初始字号
-    wpc = 0
-    while current <= max_iter:
-        current+=1
-        font = ImageFont.truetype(font_path,font_size)
-        w,h = font.getsize(string)
-        wpc = w / len(string) # width per character
-        true_width = width - wpc*margin_rate*margin_rate
+def get_appropriate_font_size(string, width, font_path, margin_amount=0, margin_rate=1, accuracy=0.05, max_iter=50) -> list[int]:
+    """
+    根据给定的宽度选择合适的字体大小。
 
-        delta_w = abs(w-true_width)
+    Args:
+        string (str): 要显示的字符串。
+        width (int): 目标宽度（仅从字符串最左到字符串最右）。
+        font_path (str): 字体路径。
+        margin_amount (int): 字符之间的空格数。
+        margin_rate (float): 间距与单个中文字符宽度之比。
+        accuracy (float): 找到合适字号的精度。
+        max_iter (int): 迭代的最大次数。
+
+    Returns:
+        一个包含三个整数的列表，分别表示字体大小、每个字符的平均宽度和空格的宽度。
+    """
+    font_size = 20  # 初始字号
+    wpc = 0  # width per character
+    for current in range(max_iter + 1):
+        font = ImageFont.truetype(font_path, font_size)
+        w, h = font.getsize(string)
+        wpc = w / len(string)
+        true_width = width - wpc * margin_rate * margin_rate
+        delta_w = abs(w - true_width)
+
         if delta_w / true_width <= accuracy:
             break
         elif w > true_width:
-            font_size /= (1+delta_w / true_width)
+            font_size /= (1 + delta_w / true_width)
             font_size = int(font_size)
         elif w < true_width:
-            font_size *= (1+delta_w / true_width)
+            font_size *= (1 + delta_w / true_width)
             font_size = int(font_size)
-    wps,h = font.getsize(" ")
-    return int(font_size)-1,wpc,wps
+
+    wps, h = font.getsize(" ")
+    return [int(font_size) - 1, wpc, wps]
 
 def shuffle(iterable):
     return sorted(iterable, key=lambda x: os.urandom(1))
@@ -577,29 +574,29 @@ class Seat(QObject):
         self.performance[0]+=interval
         self.performance[1]+=1
 
-    def save(self,size,path):
-    # 统一保存：生成图片、csv、json文件,保存路径
-    # x,y : tuple 图片宽、高
-        times = 0
+    def save(self, size, path):
+        # Save images, CSV, and JSON files.
         self.timedict["savingBegin"] = time.time()
+
         if self.ifInfoOutput:
             self.infoList.addItem("正在保存....")
             self.progressbar.setMaximum(len(self.completed))
             self.progressbar.setValue(0)
             self.progressnumber.display(0)
-        for c in self.completed:
-            # 以图片保存
-            self.draw(size,c,path)
-            # 以json保存
+
+        for index, data in enumerate(self.completed):
+            # Save as an image
+            self.draw(size, data, path)
+
+            # Save as JSON
             if path == "":
                 path = os.getcwd()
-            open("{}//{}".format(path,str(self.completed.index(c)) + ".json"),"w", encoding="UTF8").write(str(c))
-            times+=1
+            with open(f"{path}/{index}.json", "w", encoding="UTF8") as f:
+                json.dump(data, f, ensure_ascii=False)
+
             if self.ifInfoOutput:
                 self.signal.emit()
-                #self.upgrade_saving_info(times)
-                
+
         self.timedict["savingEnd"] = time.time()
         self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
-        self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
-            
+        self.infoList.addItem(f"图片生成平均耗时：{self.t:.4f}秒")
