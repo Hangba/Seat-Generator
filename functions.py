@@ -574,29 +574,29 @@ class Seat(QObject):
         self.performance[0]+=interval
         self.performance[1]+=1
 
-def save(self, size, path):
-    # Save images, CSV, and JSON files.
-    self.timedict["savingBegin"] = time.time()
-
-    if self.ifInfoOutput:
-        self.infoList.addItem("正在保存....")
-        self.progressbar.setMaximum(len(self.completed))
-        self.progressbar.setValue(0)
-        self.progressnumber.display(0)
-
-    for index, data in enumerate(self.completed):
-        # Save as an image
-        self.draw(size, data, path)
-        
-        # Save as JSON
-        if path == "":
-            path = os.getcwd()
-        with open(f"{path}/{index}.json", "w", encoding="UTF8") as f:
-            json.dump(data, f, ensure_ascii=False)
+    def save(self, size, path):
+        # Save images, CSV, and JSON files.
+        self.timedict["savingBegin"] = time.time()
 
         if self.ifInfoOutput:
-            self.signal.emit()
+            self.infoList.addItem("正在保存....")
+            self.progressbar.setMaximum(len(self.completed))
+            self.progressbar.setValue(0)
+            self.progressnumber.display(0)
 
-    self.timedict["savingEnd"] = time.time()
-    self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
-    self.infoList.addItem(f"图片生成平均耗时：{self.t:.4f}秒")
+        for index, data in enumerate(self.completed):
+            # Save as an image
+            self.draw(size, data, path)
+
+            # Save as JSON
+            if path == "":
+                path = os.getcwd()
+            with open(f"{path}/{index}.json", "w", encoding="UTF8") as f:
+                json.dump(data, f, ensure_ascii=False)
+
+            if self.ifInfoOutput:
+                self.signal.emit()
+
+        self.timedict["savingEnd"] = time.time()
+        self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
+        self.infoList.addItem(f"图片生成平均耗时：{self.t:.4f}秒")
