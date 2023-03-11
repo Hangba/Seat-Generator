@@ -5,6 +5,7 @@ import time
 import datetime
 import math
 import os
+import numpy
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from PyQt5.QtCore import *
@@ -108,10 +109,34 @@ def get_appropriate_font_size(string, width, font_path, margin_amount=0, margin_
             font_size = int(font_size)
 
     wps, h = font.getsize(" ")
-    return [int(font_size) - 1, wpc, wps]
+    return [int(font_size), wpc, wps]
 
-def shuffle(iterable):
-    return sorted(iterable, key=lambda x: os.urandom(1))
+def shuffle(iterable,algorithm = 1):
+    def bit_gen_to_shuffle(bit_gen,iterable):
+        rng = numpy.random.Generator(bit_gen)
+        rng.shuffle(iterable)
+        return iterable
+    match algorithm:
+        case 1:
+            random.shuffle(iterable)
+            return iterable
+        case 2:
+            numpy.random.shuffle(iterable)
+            return iterable
+        case 3:
+            bit_gen = numpy.random.PCG64DXSM()
+            return bit_gen_to_shuffle(bit_gen,iterable)
+        case 4:
+            bit_gen = numpy.random.MT19937()
+            return bit_gen_to_shuffle(bit_gen,iterable)
+        case 5:
+            bit_gen = numpy.random.Philox()
+            return bit_gen_to_shuffle(bit_gen,iterable)
+        case 6:
+            bit_gen = numpy.random.SFC64()
+            return bit_gen_to_shuffle(bit_gen,iterable)
+        case _:
+            raise ValueError("算法输入错误！")
         
 
 class Seat(QObject):
@@ -146,7 +171,7 @@ class Seat(QObject):
         #耗时
         self.timedict=dict()
         #时间提醒阈值
-        self.notify = 20000
+        self.notify = int(self.config.get("BASIC","notify"))
         #之前的座位
         self.former = []
         #后排系数（排数*系数向上取整，此排包括之后的都算后排）
@@ -426,13 +451,16 @@ class Seat(QObject):
         marginx_rate = float(self.config.get('DRAW', 'marginx_rate'))
         marginy_rate = float(self.config.get('DRAW', 'marginy_rate'))
         dy = float(self.config.get('DRAW', 'dy'))
+        margin_rate = float(self.config.get('AUTOMATICAL_FONT_SIZE', 'margin_rate'))
+        accuracy = float(self.config.get('AUTOMATICAL_FONT_SIZE', 'accuracy'))
+        max_iter = int(self.config.get("AUTOMATICAL_FONT_SIZE","max_iter"))
         # marginx_rate 两边空格与整张图的宽的比
         # marginx_rate 第一行到顶端距离与整张图的高的比
         # dy 每一行距离大小与字符宽度之比
         if savePath == "":
             self.infoList.addItem("#Processing 请输入保存位置！")
             raise RuntimeError
-        image = Image.new("RGB", size , eval(self.config.get("DRAW","bg_color")))
+        image = Image.new("RGB", size , self.bg_color)
         draw = ImageDraw.Draw(image)
         #font = ImageFont.truetype(self.fontPath, 55)
         image.filter(ImageFilter.BLUR)
@@ -441,10 +469,11 @@ class Seat(QObject):
         l = max_length*self.spl
         #self.infoList.addItem("正在迭代获取最合适字号")
         fontSize,wpc,wps = get_appropriate_font_size("你"*l,size[0]*(1-2*marginx_rate),
-                                                     self.fontPath,self.spl-1,
-                                                     float(self.config.get('AUTOMATICAL_FONT_SIZE', 'margin_rate')),
-                                                     float(self.config.get('AUTOMATICAL_FONT_SIZE', 'accuracy')),
-                                                     int(self.config.get("AUTOMATICAL_FONT_SIZE","max_iter")))
+                                                     self.fontPath,
+                                                     self.spl-1,
+                                                     margin_rate,
+                                                     accuracy,
+                                                     max_iter)
         #width per character and width per space
         font = ImageFont.truetype(self.fontPath, fontSize)
         #self.infoList.addItem("字号设置完成")
@@ -453,17 +482,14 @@ class Seat(QObject):
         for i in range(self.seatsize[1]):
             for j in range(self.spl):
                 
-                w = marginx_rate*size[0] + (wpc * max_length + wps) * j
+                w = marginx_rate*size[0] + (wpc * max_length + wps * margin_rate) * j
                 h = size[1]*marginy_rate + wpc * dy * i
-                if i < self.seatsize[1]:
-                    draw.text((w, h), seat[i][j], font=font, fill = eval(self.config.get("DRAW","font_color")))
-                else:
-                    try:
-                        draw.text((w, h), seat[i][j], font=font, fill = eval(self.config.get("DRAW","font_color")))
-                    except IndexError:
-                        pass
+                try:
+                    draw.text((w, h), seat[i][j], font=font, fill = self.font_color)
+                except IndexError:
+                    pass
 
-        save_dir = "{}\\{}.jpg".format( savePath, self.completed.index(seat) )
+        save_dir = "{}\\{}.jpg".format(savePath,len(self.completed)-1)
         image.save(save_dir, "jpeg")
         return "已保存图片: {}".format(save_dir)
 
@@ -471,7 +497,7 @@ class Seat(QObject):
         #尝试生成 成功返回1 否则返回0
         time0 = time.time()
         stu_copy = self.stu_list.copy()
-        shuffle(stu_copy)
+        shuffle(stu_copy,self.algorithm)
         #random.shuffle(stu_copy)
         self.initialization()
 

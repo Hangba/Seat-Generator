@@ -84,6 +84,9 @@ class mainwindow(QWidget,ui.Ui_MainWindow):
                 name = json.loads(e.read())
                 path = self.config.get('BASIC', 'font_path')
                 self.seats = functions.Seat(name,int(self.splNumber.text()),path)
+                self.seats.bg_color = eval(self.config.get("DRAW","bg_color"))
+                self.seats.font_color = eval(self.config.get("DRAW","font_color"))
+                self.seats.algorithm = int(self.config.get("BASIC","algorithm"))
                 self.seats.config = self.config
                 self.seats.path_names = self.Names.text()
                 self.seats.setInfo(self.InfoList,self.Progress,self.ProgressBar)
