@@ -170,8 +170,6 @@ class Seat(QObject):
         self.showed = list()
         #耗时
         self.timedict=dict()
-        #时间提醒阈值
-        self.notify = int(self.config.get("BASIC","notify"))
         #之前的座位
         self.former = []
         #后排系数（排数*系数向上取整，此排包括之后的都算后排）
