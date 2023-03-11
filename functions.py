@@ -574,29 +574,29 @@ class Seat(QObject):
         self.performance[0]+=interval
         self.performance[1]+=1
 
-    def save(self,size,path):
-    # 统一保存：生成图片、csv、json文件,保存路径
-    # x,y : tuple 图片宽、高
-        times = 0
-        self.timedict["savingBegin"] = time.time()
+def save(self, size, path):
+    # Save images, CSV, and JSON files.
+    self.timedict["savingBegin"] = time.time()
+
+    if self.ifInfoOutput:
+        self.infoList.addItem("正在保存....")
+        self.progressbar.setMaximum(len(self.completed))
+        self.progressbar.setValue(0)
+        self.progressnumber.display(0)
+
+    for index, data in enumerate(self.completed):
+        # Save as an image
+        self.draw(size, data, path)
+        
+        # Save as JSON
+        if path == "":
+            path = os.getcwd()
+        with open(f"{path}/{index}.json", "w", encoding="UTF8") as f:
+            json.dump(data, f, ensure_ascii=False)
+
         if self.ifInfoOutput:
-            self.infoList.addItem("正在保存....")
-            self.progressbar.setMaximum(len(self.completed))
-            self.progressbar.setValue(0)
-            self.progressnumber.display(0)
-        for c in self.completed:
-            # 以图片保存
-            self.draw(size,c,path)
-            # 以json保存
-            if path == "":
-                path = os.getcwd()
-            open("{}//{}".format(path,str(self.completed.index(c)) + ".json"),"w", encoding="UTF8").write(str(c))
-            times+=1
-            if self.ifInfoOutput:
-                self.signal.emit()
-                #self.upgrade_saving_info(times)
-                
-        self.timedict["savingEnd"] = time.time()
-        self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
-        self.infoList.addItem("图片生成平均耗时：{:.4f}秒".format(self.t))
-            
+            self.signal.emit()
+
+    self.timedict["savingEnd"] = time.time()
+    self.t = (self.timedict["savingEnd"] - self.timedict["savingBegin"]) / len(self.completed)
+    self.infoList.addItem(f"图片生成平均耗时：{self.t:.4f}秒")
